@@ -4,9 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0f172a" />
-  <title>HighCastle - שיתוף מיקום ושרטוט</title>
-  
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>HighCastle - שיתוף מיקום ושרטוט בזמן אמת</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpath d='M50 20c-11 0-20 9-20 20 0 15 20 40 20 40s20-25 20-40c0-11-9-20-20-20zm0 28a8 8 0 110-16 8 8 0 010 16z' fill='%2322d3ee'/%3E%3C/svg%3E" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -18,127 +25,290 @@
     #loadingScreen .logo { width: 80px; height: 80px; background: #22d3ee; border-radius: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 40px rgba(34, 211, 238, 0.4); }
     #loadingScreen .logo svg { width: 50px; height: 50px; fill: #0f172a; }
     #loadingScreen h1 { margin: 0; font-size: 26px; font-weight: 700; color: #f1f5f9; }
+    #loadingScreen p { margin: 0; color: #94a3b8; font-size: 14px; }
     .spinner { width: 32px; height: 32px; border: 3px solid rgba(34,211,238,0.2); border-top-color: #22d3ee; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* --- SETUP --- */
-    #setupScreen { position: fixed; inset: 0; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); z-index: 900; display: none; flex-direction: column; padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); overflow-y: auto; }
+    /* --- SETUP / JOIN SCREEN --- */
+    #setupScreen { position: fixed; inset: 0; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); z-index: 900; display: none; flex-direction: column; padding: 24px; padding-top: max(24px, env(safe-area-inset-top)); padding-bottom: max(24px, env(safe-area-inset-bottom)); overflow-y: auto; }
     #setupScreen.active { display: flex; }
+    .setup-header { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+    .setup-header .logo-mini { width: 44px; height: 44px; background: #22d3ee; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .setup-header .logo-mini svg { width: 28px; height: 28px; fill: #0f172a; }
+    .setup-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .setup-header p { margin: 2px 0 0; font-size: 13px; color: #94a3b8; }
     .setup-card { background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 16px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(12px); }
-    .field input { width: 100%; padding: 14px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 10px; color: #f1f5f9; font-size: 16px; outline: none; }
-    .btn { width: 100%; padding: 16px; background: #22d3ee; color: #0f172a; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; }
+    .setup-card h2 { margin: 0 0 8px; font-size: 16px; font-weight: 600; color: #f1f5f9; }
+    .setup-card p { margin: 0 0 16px; font-size: 13px; color: #94a3b8; line-height: 1.5; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; font-weight: 500; }
+    .field input { width: 100%; padding: 14px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 10px; color: #f1f5f9; font-size: 16px; font-family: inherit; outline: none; transition: border 0.2s; }
+    .field input:focus { border-color: #22d3ee; }
+    .field input::placeholder { color: #64748b; }
+    .btn { width: 100%; padding: 16px; background: #22d3ee; color: #0f172a; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer; transition: transform 0.1s, opacity 0.2s; }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: rgba(148, 163, 184, 0.15); color: #e2e8f0; }
+    .btn-row { display: flex; gap: 10px; }
+    .btn-row .btn { flex: 1; }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: #64748b; font-size: 12px; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: rgba(148, 163, 184, 0.15); }
 
     /* --- MAIN APP --- */
     #app { position: fixed; inset: 0; display: none; }
     #app.active { display: block; }
     #map { position: absolute; inset: 0; background: #1e293b; z-index: 1; }
     #drawCanvas { position: absolute; inset: 0; z-index: 400; pointer-events: none; }
-    #drawCanvas.active { pointer-events: auto; }
+    #drawCanvas.active { pointer-events: auto; cursor: crosshair; }
 
     /* --- TOP BAR --- */
-    .top-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 500; padding: max(12px, env(safe-area-inset-top)) 12px 12px; display: flex; gap: 8px; pointer-events: none; }
+    .top-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 500; padding: max(12px, env(safe-area-inset-top)) 12px 12px; display: flex; gap: 8px; align-items: center; pointer-events: none; }
     .top-bar > * { pointer-events: auto; }
-    .pill { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 14px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; color: #e2e8f0; font-size: 13px; }
-    .group-code { color: #22d3ee; font-family: monospace; font-size: 15px; }
-    .icon-btn { width: 44px; height: 44px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #e2e8f0; }
+    .pill { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 14px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); color: #e2e8f0; font-size: 13px; font-weight: 600; }
+    .pill.group-pill { flex: 1; min-width: 0; }
+    .pill .group-code { font-family: 'SF Mono', Menlo, monospace; color: #22d3ee; font-size: 15px; letter-spacing: 1px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pill .group-label { color: #64748b; font-size: 11px; font-weight: 500; }
+    .icon-btn { width: 44px; height: 44px; min-width: 44px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; color: #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .icon-btn:active { transform: scale(0.92); }
+    .icon-btn svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .members-bar { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 60px); left: 12px; right: 12px; z-index: 500; display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; pointer-events: auto; }
+    .members-bar::-webkit-scrollbar { display: none; }
+    .member-chip { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 20px; padding: 6px 12px 6px 6px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 12px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.3); cursor: pointer; }
+    .member-chip .avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #0f172a; }
+    .member-chip .status { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
+    .member-chip.offline .status { background: #64748b; }
+    .member-chip.offline { opacity: 0.6; }
 
-    /* --- MEMBERS BAR --- */
-    .members-bar { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 60px); left: 12px; right: 12px; z-index: 500; display: flex; gap: 6px; overflow-x: auto; pointer-events: auto; }
-    .member-chip { background: rgba(15, 23, 42, 0.85); border-radius: 20px; padding: 6px 12px 6px 6px; display: flex; align-items: center; gap: 6px; font-size: 12px; flex-shrink: 0; }
-    .member-chip .avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #0f172a; font-weight: bold; }
+    /* --- BOTTOM TOOLBAR --- */
+    .bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; z-index: 500; padding: 12px 12px max(12px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+    .bottom-bar > * { pointer-events: auto; }
+    .color-row { display: flex; gap: 8px; justify-content: center; padding: 8px 12px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); align-self: center; transform: translateY(8px); opacity: 0; pointer-events: none; transition: all 0.2s; }
+    .color-row.visible { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    .color-swatch { width: 36px; height: 36px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: transform 0.1s; }
+    .color-swatch.active { border-color: #f1f5f9; transform: scale(1.1); }
 
-    /* --- BOTTOM TOOLBAR (No Colors) --- */
-    .bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; z-index: 500; padding: 12px 12px max(12px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
-    .tools { pointer-events: auto; display: flex; gap: 8px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 20px; padding: 8px; }
-    .tool { width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #cbd5e1; background: transparent; border: none; cursor: pointer; }
+    .tools { display: flex; gap: 8px; justify-content: center; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 20px; padding: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); align-self: center; }
+    .tool { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; color: #cbd5e1; background: transparent; border: none; }
+    .tool:active { transform: scale(0.92); }
     .tool.active { background: #22d3ee; color: #0f172a; }
-    .tool svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .tool svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
     .tool.danger { color: #f87171; }
 
-    /* סמן משתמש */
-    .user-marker { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #0f172a; position: relative; }
-    .marker-label { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.9); padding: 2px 8px; border-radius: 10px; font-size: 11px; white-space: nowrap; }
+    /* --- TOAST / NOTIFICATIONS --- */
+    #toast { position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 116px); left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 12px; padding: 10px 16px; font-size: 13px; color: #f1f5f9; z-index: 999; opacity: 0; pointer-events: none; transition: all 0.3s; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+    #toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    #toast { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.9); padding: 10px 20px; border-radius: 12px; z-index: 2000; opacity: 0; transition: 0.3s; pointer-events: none; }
-    #toast.visible { opacity: 1; }
-
-    /* MENU SHEET */
+    /* --- MENU SHEET --- */
     #menuSheet { position: fixed; inset: 0; z-index: 600; display: none; }
     #menuSheet.active { display: block; }
     .sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
-    .sheet-content { position: absolute; bottom: 0; left: 0; right: 0; background: #1e293b; border-radius: 24px 24px 0 0; padding: 20px; }
-    .sheet-item { display: flex; align-items: center; gap: 12px; padding: 15px; color: #e2e8f0; border-radius: 12px; }
+    .sheet-content { position: absolute; bottom: 0; left: 0; right: 0; background: #1e293b; border-radius: 24px 24px 0 0; padding: 20px 20px max(20px, env(safe-area-inset-bottom)); border-top: 1px solid rgba(148, 163, 184, 0.15); }
+    .sheet-handle { width: 40px; height: 4px; background: rgba(148, 163, 184, 0.3); border-radius: 2px; margin: 0 auto 16px; }
+    .sheet-item { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; cursor: pointer; transition: background 0.15s; color: #e2e8f0; }
+    .sheet-item:active { background: rgba(148, 163, 184, 0.1); }
+    .sheet-item svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; color: #22d3ee; }
+    .sheet-item.danger { color: #f87171; }
+    .sheet-item.danger svg { color: #f87171; }
+    .sheet-info { font-size: 12px; color: #64748b; padding: 12px 14px; border-top: 1px solid rgba(148, 163, 184, 0.1); margin-top: 8px; line-height: 1.5; }
+
+    /* Leaflet custom marker */
+    .user-marker { background: #22d3ee; width: 18px; height: 18px; border-radius: 50%; border: 3px solid #0f172a; box-shadow: 0 0 0 2px #22d3ee, 0 4px 12px rgba(0,0,0,0.4); position: relative; }
+    .user-marker.me { background: #f59e0b; box-shadow: 0 0 0 2px #f59e0b, 0 4px 12px rgba(0,0,0,0.4); }
+    .user-marker.me::after { content: ''; position: absolute; inset: -8px; border: 2px solid #f59e0b; border-radius: 50%; animation: pulse 2s infinite; opacity: 0.6; }
+    @keyframes pulse { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.8); opacity: 0; } }
+    .marker-label { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.9); color: #f1f5f9; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; pointer-events: none; }
+
+    .leaflet-container { background: #1e293b; }
+    .leaflet-control-attribution { background: rgba(15, 23, 42, 0.7) !important; color: #64748b !important; font-size: 9px !important; }
+    .leaflet-control-attribution a { color: #94a3b8 !important; }
   </style>
 </head>
 <body>
 
+  <!-- ========== LOADING SCREEN ========== -->
   <div id="loadingScreen">
-    <div class="logo"><svg viewBox="0 0 100 100"><path d="M50 20c-11 0-20 9-20 20 0 15 20 40 20 40s20-25 20-40c0-11-9-20-20-20zm0 28a8 8 0 110-16 8 8 0 010 16z"/></svg></div>
+    <div class="logo">
+      <svg viewBox="0 0 100 100"><path d="M50 20c-11 0-20 9-20 20 0 15 20 40 20 40s20-25 20-40c0-11-9-20-20-20zm0 28a8 8 0 110-16 8 8 0 010 16z"/></svg>
+    </div>
     <h1>HighCastle</h1>
+    <p>שיתוף מיקום ושרטוט בזמן אמת</p>
     <div class="spinner"></div>
   </div>
 
+  <!-- ========== SETUP / JOIN SCREEN ========== -->
   <div id="setupScreen">
+    <div class="setup-header">
+      <div class="logo-mini">
+        <svg viewBox="0 0 100 100"><path d="M50 20c-11 0-20 9-20 20 0 15 20 40 20 40s20-25 20-40c0-11-9-20-20-20zm0 28a8 8 0 110-16 8 8 0 010 16z"/></svg>
+      </div>
+      <div>
+        <h1>HighCastle</h1>
+        <p>שיתוף מיקום ושרטוט בזמן אמת</p>
+      </div>
+    </div>
+
     <div class="setup-card">
-      <h2>הצטרפות</h2>
-      <div class="field"><input type="text" id="nameInput" placeholder="השם שלך" maxlength="15" /></div>
-      <div class="field" style="margin-top:10px;"><input type="text" id="joinCodeInput" placeholder="קוד קבוצה (אופציונלי)" /></div>
-      <button class="btn" id="joinBtn" style="margin-top:20px;">היכנס</button>
-      <button class="btn" id="createBtn" style="margin-top:10px; background: #334155; color: white;">צור קבוצה חדשה</button>
+      <h2>השם שלך</h2>
+      <p>איך חברי הצוות יזהו אותך על המפה</p>
+      <div class="field">
+        <input type="text" id="nameInput" placeholder="לדוגמה: דני" maxlength="20" />
+      </div>
+    </div>
+
+    <div class="setup-card">
+      <h2>הצטרפות לקבוצה</h2>
+      <p>הזן את קוד הקבוצה כדי להצטרף לחברי הצוות שלך</p>
+      <div class="field">
+        <input type="text" id="joinCodeInput" placeholder="הזן קוד קבוצה (למשל: ALPHA-7)" maxlength="20" style="text-transform: uppercase;" />
+      </div>
+      <button class="btn" id="joinBtn">הצטרף לקבוצה</button>
+    </div>
+
+    <div class="divider">או</div>
+
+    <div class="setup-card">
+      <h2>צור קבוצה חדשה</h2>
+      <p>צור קבוצה חדשה וקבל קוד שתוכל לשלוח לחברי הצוות</p>
+      <button class="btn btn-secondary" id="createBtn">צור קבוצה חדשה</button>
+    </div>
+
+    <div class="sheet-info" style="text-align: center; margin-top: auto;">
+      הגרסה הזו פועלת במצב מקומי (Local Demo).<br>
+      לסנכרון בין מכשירים יש לחבר Firebase - ראה הוראות ב-README.
     </div>
   </div>
 
+  <!-- ========== MAIN APP ========== -->
   <div id="app">
     <div id="map"></div>
     <canvas id="drawCanvas"></canvas>
 
+    <!-- Top bar -->
     <div class="top-bar">
-      <div class="pill">קבוצה: <span class="group-code" id="groupCodeDisplay">—</span></div>
-      <div class="icon-btn" id="centerBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></div>
-      <div class="icon-btn" id="menuBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></div>
+      <div class="pill group-pill">
+        <span class="group-label">קבוצה:</span>
+        <span class="group-code" id="groupCodeDisplay">—</span>
+      </div>
+      <div class="icon-btn" id="shareBtn" title="שיתוף קוד">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </div>
+      <div class="icon-btn" id="centerBtn" title="מרכז עליי">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+      </div>
+      <div class="icon-btn" id="menuBtn" title="תפריט">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+      </div>
     </div>
 
+    <!-- Members bar -->
     <div class="members-bar" id="membersBar"></div>
 
+    <!-- Bottom toolbar -->
     <div class="bottom-bar">
+      <div class="color-row" id="colorRow">
+        <div class="color-swatch active" data-color="#ef4444" style="background: #ef4444;"></div>
+        <div class="color-swatch" data-color="#22d3ee" style="background: #22d3ee;"></div>
+        <div class="color-swatch" data-color="#10b981" style="background: #10b981;"></div>
+        <div class="color-swatch" data-color="#f59e0b" style="background: #f59e0b;"></div>
+        <div class="color-swatch" data-color="#a855f7" style="background: #a855f7;"></div>
+        <div class="color-swatch" data-color="#f1f5f9" style="background: #f1f5f9;"></div>
+      </div>
+
       <div class="tools">
-        <button class="tool active" data-tool="pan"><svg viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg></button>
-        <button class="tool" data-tool="draw"><svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
-        <button class="tool" data-tool="line"><svg viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="5" r="1.5"/></svg></button>
-        <button class="tool" data-tool="x"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
-        <button class="tool" data-tool="undo"><svg viewBox="0 0 24 24"><path d="M3 7v6h6M21 17a9 9 0 00-15-6.7L3 13"/></svg></button>
-        <button class="tool danger" data-tool="clear"><svg viewBox="0 0 24 24"><path d="M19 6l-2 14H7L5 6M10 11v6M14 11v6M3 6h18"/></svg></button>
+        <button class="tool active" data-tool="pan" title="הזזת מפה">
+          <svg viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3"/><path d="M9 5l3-3 3 3"/><path d="M15 19l-3 3-3-3"/><path d="M19 9l3 3-3 3"/><path d="M2 12h20"/><path d="M12 2v20"/></svg>
+        </button>
+        <button class="tool" data-tool="draw" title="ציור חופשי">
+          <svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+        </button>
+        <button class="tool" data-tool="line" title="קו ישר">
+          <svg viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="5" r="1.5"/></svg>
+        </button>
+        <button class="tool" data-tool="x" title="סימן X">
+          <svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+        <button class="tool" data-tool="circle" title="עיגול אזור">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+        </button>
+        <button class="tool" data-tool="undo" title="בטל ציור אחרון שלי">
+          <svg viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-15-6.7L3 13"/></svg>
+        </button>
+        <button class="tool danger" data-tool="clear" title="ניקוי הכל (לכולם)">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </button>
       </div>
     </div>
 
     <div id="toast"></div>
   </div>
 
+  <!-- ========== MENU SHEET ========== -->
   <div id="menuSheet">
     <div class="sheet-backdrop"></div>
     <div class="sheet-content">
-      <div class="sheet-item" id="leaveItem" style="color: #f87171;">צא מהקבוצה</div>
+      <div class="sheet-handle"></div>
+      <div class="sheet-item" id="shareCodeItem">
+        <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        <span>שתף קוד קבוצה</span>
+      </div>
+      <div class="sheet-item" id="copyCodeItem">
+        <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        <span>העתק קוד</span>
+      </div>
+      <div class="sheet-item" id="recenterItem">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+        <span>מרכז על כל הצוות</span>
+      </div>
+      <div class="sheet-item" id="toggleMapItem">
+        <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        <span>החלף סוג מפה</span>
+      </div>
+      <div class="sheet-item danger" id="leaveItem">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>צא מהקבוצה</span>
+      </div>
+      <div class="sheet-info">
+        משתמש: <span id="userNameDisplay">—</span><br>
+        קוד קבוצה: <span id="userGroupDisplay">—</span>
+      </div>
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <script>
-  /* --- לוגיקה --- */
+  /* =========================================================================
+     HighCastle - Realtime Location + Drawing PWA
+     Single-file MVP implementation
+     ========================================================================= */
+
+  // ============== STATE ==============
   const state = {
     userName: '',
-    userId: 'u_' + Math.random().toString(36).slice(2, 10),
+    userId: '',
     groupCode: '',
+    color: '#ef4444',
     tool: 'pan',
-    members: {},
-    drawings: [],
+    members: {},      // { userId: { name, lat, lng, color, lastSeen, online } }
+    drawings: [],     // [{ id, userId, color, type, points: [[lat,lng],...] }]
     map: null,
-    markers: {},
+    markers: {},      // userId -> L.marker
+    drawLayers: {},   // drawingId -> L.layer
     currentDrawing: null,
-    syncBackend: null,
-    lastPos: null
+    isDrawing: false,
+    mapStyle: 'dark', // 'dark' | 'satellite' | 'street'
+    tileLayer: null,
+    watchId: null,
+    syncBackend: null, // populated by initSync()
+    lastPos: null,
   };
 
+  const userId = 'u_' + Math.random().toString(36).slice(2, 10);
+  state.userId = userId;
+
+  // Color palette per user (assigned by hashing userId)
   const userColors = ['#22d3ee', '#f59e0b', '#10b981', '#ef4444', '#a855f7', '#ec4899', '#06b6d4', '#84cc16'];
   function colorForUser(id) {
     let h = 0;
@@ -146,177 +316,777 @@
     return userColors[Math.abs(h) % userColors.length];
   }
 
-  // --- SYNC (Trystero) ---
+  // ============== LOCAL STORAGE ==============
+  function saveSession() {
+    try {
+      sessionStorage.setItem('highcastle_session', JSON.stringify({
+        userName: state.userName, userId: state.userId, groupCode: state.groupCode
+      }));
+    } catch(e) {}
+  }
+  function loadSession() {
+    try {
+      const s = sessionStorage.getItem('highcastle_session');
+      if (s) return JSON.parse(s);
+    } catch(e) {}
+    return null;
+  }
+  function clearSession() {
+    try { sessionStorage.removeItem('highcastle_session'); } catch(e) {}
+  }
+
+  // ============== TOAST ==============
+  let toastTimer = null;
+  function toast(msg, duration = 2400) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('visible'), duration);
+  }
+
+  // ============== SCREEN MANAGEMENT ==============
+  function showScreen(name) {
+    document.getElementById('loadingScreen').style.display = (name === 'loading') ? 'flex' : 'none';
+    document.getElementById('setupScreen').classList.toggle('active', name === 'setup');
+    document.getElementById('app').classList.toggle('active', name === 'app');
+  }
+
+  // ============== GROUP CODE GEN ==============
+  function generateGroupCode() {
+    const adjectives = ['ALPHA','BRAVO','DELTA','ECHO','FOXTROT','GOLF','HOTEL','INDIA','JULIET','KILO'];
+    const a = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const n = Math.floor(Math.random() * 90) + 10;
+    return `${a}-${n}`;
+  }
+
+  // ============== SYNC BACKEND ==============
+  // Uses Trystero (P2P via WebRTC over public BitTorrent trackers) for true
+  // cross-device realtime sync with ZERO backend setup, ZERO accounts, ZERO config.
+  // Also falls back to BroadcastChannel + localStorage for same-device tab sync.
+
   class HybridSync {
     constructor(groupCode) {
       this.groupCode = groupCode;
       this.handlers = { member: null, drawing: null, clear: null, delete: null };
-      this._init();
-    }
-    async _init() {
-      const { joinRoom } = await import('https://esm.sh/trystero@0.21.5/torrent');
-      this.room = joinRoom({ appId: 'highcastle-v2' }, this.groupCode);
-      
-      const [sendPos, getPos] = this.room.makeAction('pos');
-      const [sendDraw, getDraw] = this.room.makeAction('draw');
-      const [sendClear, getClear] = this.room.makeAction('clear');
-      const [sendDel, getDel] = this.room.makeAction('del');
+      this.knownDrawings = new Set();
 
-      this.publishMember = (m) => sendPos(m);
-      this.publishDrawing = (d) => sendDraw(d);
-      this.clearDrawings = () => sendClear({});
-      this.deleteDrawing = (id) => sendDel({id});
+      // LOCAL: BroadcastChannel + localStorage for same-device + persistence
+      this.key = `highcastle_grp_${groupCode}`;
+      try {
+        this.channel = new BroadcastChannel(`highcastle-${groupCode}`);
+        this.channel.onmessage = (e) => this._onLocalMessage(e.data);
+      } catch(e) { this.channel = null; }
 
-      getPos((m) => this.handlers.member && this.handlers.member(m.userId, m));
-      getDraw((d) => this.handlers.drawing && this.handlers.drawing(d));
-      getClear(() => this.handlers.clear && this.handlers.clear());
-      getDel((data) => this.handlers.delete && this.handlers.delete(data.id));
+      // P2P: Trystero room (loaded async)
+      this.room = null;
+      this.sendPos = null;
+      this.sendDraw = null;
+      this.sendClear = null;
+      this._initTrystero();
+
+      this._loadInitial();
+      this.heartbeat = setInterval(() => this._heartbeat(), 4000);
+      this._pruneInterval = setInterval(() => this._pruneOffline(), 8000);
     }
-    on(ev, fn) { this.handlers[ev] = fn; }
+
+    async _initTrystero() {
+      try {
+        // Load trystero from CDN (torrent strategy = no backend needed, uses public trackers)
+        const { joinRoom } = await import('https://esm.sh/trystero@0.21.5/torrent');
+        this.room = joinRoom(
+          { appId: 'highcastle-app-v1', password: undefined },
+          this.groupCode
+        );
+
+        const [sendPos, getPos] = this.room.makeAction('pos');
+        const [sendDraw, getDraw] = this.room.makeAction('draw');
+        const [sendClear, getClear] = this.room.makeAction('clear');
+        const [sendDelete, getDelete] = this.room.makeAction('del');
+        const [sendHello, getHello] = this.room.makeAction('hello');
+        const [sendBackfill, getBackfill] = this.room.makeAction('backfill');
+
+        this.sendPos = sendPos;
+        this.sendDraw = sendDraw;
+        this.sendClear = sendClear;
+        this.sendDelete = sendDelete;
+        this.sendHello = sendHello;
+
+        getDelete((data) => {
+          if (!data || !data.id) return;
+          this.knownDrawings.delete(data.id);
+          this.handlers.delete && this.handlers.delete(data.id);
+        });
+
+        getPos((data, peerId) => {
+          if (!data || !data.userId || data.userId === state.userId) return;
+          this.handlers.member && this.handlers.member(data.userId, data);
+        });
+
+        getDraw((drawing) => {
+          if (!drawing || !drawing.id) return;
+          if (this.knownDrawings.has(drawing.id)) return;
+          this.knownDrawings.add(drawing.id);
+          this.handlers.drawing && this.handlers.drawing(drawing);
+        });
+
+        getClear(() => {
+          this.knownDrawings.clear();
+          this.handlers.clear && this.handlers.clear();
+        });
+
+        getHello((data, peerId) => {
+          // someone joined - backfill them with current state
+          if (state.drawings.length > 0) {
+            sendBackfill({ drawings: state.drawings.slice(-100) }, peerId);
+          }
+        });
+
+        getBackfill((data) => {
+          if (!data || !data.drawings) return;
+          data.drawings.forEach(d => {
+            if (!this.knownDrawings.has(d.id)) {
+              this.knownDrawings.add(d.id);
+              this.handlers.drawing && this.handlers.drawing(d);
+            }
+          });
+        });
+
+        this.room.onPeerJoin(peerId => {
+          // announce ourselves and request backfill
+          sendHello({ userId: state.userId, name: state.userName });
+          if (state.lastPos) {
+            sendPos({
+              userId: state.userId,
+              name: state.userName,
+              lat: state.lastPos.lat,
+              lng: state.lastPos.lng,
+              color: colorForUser(state.userId),
+              lastSeen: Date.now(),
+              online: true
+            }, peerId);
+          }
+        });
+
+        this.room.onPeerLeave(peerId => {
+          // peer disconnected — we can't directly tie peerId to userId without tracking
+        });
+
+        toast('סנכרון בזמן אמת מחובר ✓', 2000);
+      } catch (e) {
+        console.warn('Trystero failed to load, falling back to local-only sync', e);
+        toast('סנכרון בין מכשירים לא זמין — מצב מקומי בלבד', 4000);
+      }
+    }
+
+    on(event, handler) { this.handlers[event] = handler; }
+
+    _loadInitial() {
+      try {
+        const data = JSON.parse(localStorage.getItem(this.key) || '{"members":{},"drawings":[]}');
+        Object.entries(data.members || {}).forEach(([id, m]) => {
+          if (Date.now() - (m.lastSeen||0) < 30000) {
+            this.handlers.member && this.handlers.member(id, m);
+          }
+        });
+        (data.drawings || []).forEach(d => {
+          this.knownDrawings.add(d.id);
+          this.handlers.drawing && this.handlers.drawing(d);
+        });
+      } catch(e) {}
+    }
+
+    _save(data) {
+      try { localStorage.setItem(this.key, JSON.stringify(data)); } catch(e) {}
+    }
+    _read() {
+      try { return JSON.parse(localStorage.getItem(this.key) || '{"members":{},"drawings":[]}'); }
+      catch(e) { return {members:{}, drawings:[]}; }
+    }
+
+    _heartbeat() {
+      if (!state.lastPos) return;
+      this.publishMember({
+        userId: state.userId,
+        name: state.userName,
+        lat: state.lastPos.lat,
+        lng: state.lastPos.lng,
+        color: colorForUser(state.userId),
+        lastSeen: Date.now(),
+        online: true
+      });
+    }
+
+    _pruneOffline() {
+      const data = this._read();
+      let changed = false;
+      Object.entries(data.members || {}).forEach(([id, m]) => {
+        if (Date.now() - (m.lastSeen||0) > 30000 && m.online !== false) {
+          m.online = false;
+          changed = true;
+          this.handlers.member && this.handlers.member(id, m);
+        }
+      });
+      if (changed) this._save(data);
+    }
+
+    publishMember(member) {
+      const data = this._read();
+      data.members = data.members || {};
+      data.members[state.userId] = member;
+      this._save(data);
+      if (this.channel) this.channel.postMessage({ type: 'member', userId: state.userId, member });
+      if (this.sendPos) this.sendPos(member).catch(()=>{});
+    }
+
+    publishDrawing(drawing) {
+      const data = this._read();
+      data.drawings = data.drawings || [];
+      data.drawings.push(drawing);
+      if (data.drawings.length > 200) data.drawings = data.drawings.slice(-200);
+      this._save(data);
+      this.knownDrawings.add(drawing.id);
+      if (this.channel) this.channel.postMessage({ type: 'drawing', drawing });
+      if (this.sendDraw) this.sendDraw(drawing).catch(()=>{});
+    }
+
+    clearDrawings() {
+      const data = this._read();
+      data.drawings = [];
+      this._save(data);
+      this.knownDrawings.clear();
+      if (this.channel) this.channel.postMessage({ type: 'clear' });
+      if (this.sendClear) this.sendClear({ ts: Date.now() }).catch(()=>{});
+    }
+
+    deleteDrawing(id) {
+      const data = this._read();
+      data.drawings = (data.drawings || []).filter(d => d.id !== id);
+      this._save(data);
+      this.knownDrawings.delete(id);
+      if (this.channel) this.channel.postMessage({ type: 'delete', id });
+      if (this.sendDelete) this.sendDelete({ id }).catch(()=>{});
+    }
+
+    leave() {
+      const data = this._read();
+      if (data.members) delete data.members[state.userId];
+      this._save(data);
+      if (this.channel) {
+        this.channel.postMessage({ type: 'leave', userId: state.userId });
+        this.channel.close();
+      }
+      if (this.room) this.room.leave();
+      clearInterval(this.heartbeat);
+      clearInterval(this._pruneInterval);
+    }
+
+    _onLocalMessage(msg) {
+      if (msg.type === 'member' && msg.userId !== state.userId) {
+        this.handlers.member && this.handlers.member(msg.userId, msg.member);
+      } else if (msg.type === 'drawing') {
+        if (!this.knownDrawings.has(msg.drawing.id)) {
+          this.knownDrawings.add(msg.drawing.id);
+          this.handlers.drawing && this.handlers.drawing(msg.drawing);
+        }
+      } else if (msg.type === 'clear') {
+        this.knownDrawings.clear();
+        this.handlers.clear && this.handlers.clear();
+      } else if (msg.type === 'delete') {
+        this.knownDrawings.delete(msg.id);
+        this.handlers.delete && this.handlers.delete(msg.id);
+      } else if (msg.type === 'leave') {
+        this.handlers.member && this.handlers.member(msg.userId, null);
+      }
+    }
   }
 
-  // --- MAP & DRAW ---
+  function initSync() {
+    state.syncBackend = new HybridSync(state.groupCode);
+
+    state.syncBackend.on('member', (uid, member) => {
+      if (uid === state.userId) return;
+      if (member === null) {
+        delete state.members[uid];
+        if (state.markers[uid]) { state.map.removeLayer(state.markers[uid]); delete state.markers[uid]; }
+      } else {
+        state.members[uid] = member;
+        updateMemberMarker(uid, member);
+      }
+      renderMembersBar();
+    });
+
+    state.syncBackend.on('drawing', (drawing) => {
+      state.drawings.push(drawing);
+      renderDrawing(drawing);
+    });
+
+    state.syncBackend.on('clear', () => {
+      Object.values(state.drawLayers).forEach(l => state.map.removeLayer(l));
+      state.drawLayers = {};
+      state.drawings = [];
+      redrawAllDrawings();
+      toast('הציורים נמחקו ע"י חבר צוות');
+    });
+
+    state.syncBackend.on('delete', (id) => {
+      state.drawings = state.drawings.filter(d => d.id !== id);
+      redrawAllDrawings();
+    });
+  }
+
+  // ============== MAP ==============
+  const TILE_LAYERS = {
+    dark: {
+      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      attribution: '&copy; OSM &copy; CARTO'
+    },
+    street: {
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: '&copy; OpenStreetMap'
+    },
+    satellite: {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attribution: 'Tiles &copy; Esri'
+    }
+  };
+
   function initMap() {
-    state.map = L.map('map', { zoomControl: false }).setView([32.0853, 34.7818], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(state.map);
+    state.map = L.map('map', {
+      zoomControl: false,
+      attributionControl: true,
+      preferCanvas: true,
+    }).setView([32.0853, 34.7818], 13); // Default: Tel Aviv
+
+    setMapStyle('satellite');
+    L.control.zoom({ position: 'bottomleft' }).addTo(state.map);
+
     state.map.on('move zoom', redrawAllDrawings);
   }
 
+  function setMapStyle(style) {
+    if (state.tileLayer) state.map.removeLayer(state.tileLayer);
+    const cfg = TILE_LAYERS[style];
+    state.tileLayer = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 19 }).addTo(state.map);
+    state.mapStyle = style;
+  }
+
+  function updateMemberMarker(uid, member) {
+    if (!member.lat || !member.lng) return;
+    const isMe = uid === state.userId;
+    const color = member.color || colorForUser(uid);
+
+    const initials = (member.name || '?').slice(0, 2);
+    const html = `<div class="user-marker${isMe ? ' me' : ''}" style="background:${color}; box-shadow: 0 0 0 2px ${color}, 0 4px 12px rgba(0,0,0,0.4);"></div><div class="marker-label">${escapeHtml(member.name||'?')}</div>`;
+    const icon = L.divIcon({ html, className: '', iconSize: [18,18], iconAnchor: [9,9] });
+
+    if (state.markers[uid]) {
+      state.markers[uid].setLatLng([member.lat, member.lng]);
+      state.markers[uid].setIcon(icon);
+    } else {
+      state.markers[uid] = L.marker([member.lat, member.lng], { icon }).addTo(state.map);
+    }
+    if (member.online === false) {
+      state.markers[uid].getElement() && state.markers[uid].getElement().classList.add('offline');
+    }
+  }
+
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // ============== GEOLOCATION ==============
+  function startLocationTracking() {
+    if (!navigator.geolocation) {
+      toast('המכשיר אינו תומך במיקום');
+      return;
+    }
+    state.watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        state.lastPos = { lat: latitude, lng: longitude };
+        const member = {
+          name: state.userName,
+          lat: latitude, lng: longitude,
+          color: colorForUser(state.userId),
+          lastSeen: Date.now(),
+          online: true
+        };
+        state.members[state.userId] = member;
+        updateMemberMarker(state.userId, member);
+        state.syncBackend && state.syncBackend.publishMember(member);
+        renderMembersBar();
+        // First fix: center on me
+        if (!state._centeredOnce) {
+          state.map.setView([latitude, longitude], 16);
+          state._centeredOnce = true;
+        }
+      },
+      (err) => {
+        toast('שגיאה בקבלת מיקום: ' + err.message);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+  }
+
+  function stopLocationTracking() {
+    if (state.watchId !== null) {
+      navigator.geolocation.clearWatch(state.watchId);
+      state.watchId = null;
+    }
+  }
+
+  // ============== MEMBERS BAR ==============
+  function renderMembersBar() {
+    const bar = document.getElementById('membersBar');
+    const all = Object.entries(state.members);
+    // sort: me first, then online, then by name
+    all.sort(([aId, a], [bId, b]) => {
+      if (aId === state.userId) return -1;
+      if (bId === state.userId) return 1;
+      if ((b.online !== false) - (a.online !== false) !== 0) return (b.online !== false) - (a.online !== false);
+      return (a.name||'').localeCompare(b.name||'');
+    });
+    bar.innerHTML = all.map(([id, m]) => {
+      const isMe = id === state.userId;
+      const color = m.color || colorForUser(id);
+      const initials = (m.name || '?').slice(0, 2);
+      const offline = m.online === false ? ' offline' : '';
+      return `<div class="member-chip${offline}" data-uid="${id}">
+        <div class="avatar" style="background:${color}">${escapeHtml(initials)}</div>
+        <span>${escapeHtml(m.name || '?')}${isMe ? ' (אני)' : ''}</span>
+        <div class="status"></div>
+      </div>`;
+    }).join('');
+    // click to center on member
+    bar.querySelectorAll('.member-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const uid = chip.dataset.uid;
+        const m = state.members[uid];
+        if (m && m.lat) state.map.flyTo([m.lat, m.lng], 17, { duration: 0.6 });
+      });
+    });
+  }
+
+  // ============== DRAWING ENGINE ==============
   const canvas = document.getElementById('drawCanvas');
   const ctx = canvas.getContext('2d');
-
   function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     redrawAllDrawings();
   }
   window.addEventListener('resize', resizeCanvas);
 
+  function latLngToPoint(latlng) {
+    const p = state.map.latLngToContainerPoint(L.latLng(latlng[0], latlng[1]));
+    return [p.x, p.y];
+  }
+  function pointToLatLng(x, y) {
+    const ll = state.map.containerPointToLatLng(L.point(x, y));
+    return [ll.lat, ll.lng];
+  }
+
   function redrawAllDrawings() {
+    if (!state.map) return;
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    state.drawings.forEach(drawShape);
+    state.drawings.forEach(d => drawShape(d));
     if (state.currentDrawing) drawShape(state.currentDrawing);
   }
 
   function drawShape(d) {
-    if (!d.points || d.points.length < 1) return;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.strokeStyle = d.color;
     ctx.fillStyle = d.color;
     ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
 
-    const pts = d.points.map(p => {
-      const point = state.map.latLngToContainerPoint([p[0], p[1]]);
-      return [point.x, point.y];
-    });
+    if (!d.points || d.points.length === 0) return;
+    const pts = d.points.map(p => latLngToPoint(p));
 
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
     if (d.type === 'draw') {
-      pts.forEach(p => ctx.lineTo(p[0], p[1]));
-    } else if (d.type === 'line' && pts.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.stroke();
+    } else if (d.type === 'line' && pts.length >= 2) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
       ctx.lineTo(pts[pts.length-1][0], pts[pts.length-1][1]);
-    } else if (d.type === 'x') {
-      const [x,y] = pts[0]; const s = 15;
+      ctx.stroke();
+    } else if (d.type === 'x' && pts.length >= 1) {
+      const [x,y] = pts[0];
+      const s = 18;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
       ctx.moveTo(x-s, y-s); ctx.lineTo(x+s, y+s);
       ctx.moveTo(x+s, y-s); ctx.lineTo(x-s, y+s);
+      ctx.stroke();
+    } else if (d.type === 'circle' && pts.length >= 2) {
+      const [x1,y1] = pts[0], [x2,y2] = pts[pts.length-1];
+      const r = Math.hypot(x2-x1, y2-y1);
+      ctx.beginPath();
+      ctx.arc(x1, y1, r, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.12;
+      ctx.fill();
+      ctx.globalAlpha = 1;
     }
-    ctx.stroke();
   }
 
-  // --- INPUTS ---
-  canvas.addEventListener('pointerdown', (e) => {
-    if (state.tool === 'pan') return;
-    const ll = state.map.containerPointToLatLng([e.clientX, e.clientY]);
-    state.currentDrawing = {
-      id: Date.now() + Math.random(),
+  function renderDrawing(d) { redrawAllDrawings(); }
+
+  // ============== DRAW INPUT HANDLERS ==============
+  let drawState = null; // { type, points, color }
+
+  function getEventCoord(e) {
+    const t = e.touches ? e.touches[0] : e;
+    return [t.clientX, t.clientY];
+  }
+
+  function onDrawStart(e) {
+    if (state.tool === 'pan' || state.tool === 'clear') return;
+    e.preventDefault();
+    const [x,y] = getEventCoord(e);
+    const ll = pointToLatLng(x, y);
+    drawState = {
+      id: 'd_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
       userId: state.userId,
-      color: colorForUser(state.userId), // צבע נעול למשתמש
+      color: state.color,
       type: state.tool,
-      points: [[ll.lat, ll.lng]]
+      points: [ll]
     };
-  });
-
-  canvas.addEventListener('pointermove', (e) => {
-    if (!state.currentDrawing) return;
-    const ll = state.map.containerPointToLatLng([e.clientX, e.clientY]);
-    if (state.tool === 'draw') state.currentDrawing.points.push([ll.lat, ll.lng]);
-    else state.currentDrawing.points[1] = [ll.lat, ll.lng];
+    state.currentDrawing = drawState;
     redrawAllDrawings();
-  });
-
-  canvas.addEventListener('pointerup', () => {
-    if (!state.currentDrawing) return;
-    state.drawings.push(state.currentDrawing);
-    state.syncBackend && state.syncBackend.publishDrawing(state.currentDrawing);
+  }
+  function onDrawMove(e) {
+    if (!drawState) return;
+    e.preventDefault();
+    const [x,y] = getEventCoord(e);
+    const ll = pointToLatLng(x, y);
+    if (drawState.type === 'draw') {
+      drawState.points.push(ll);
+    } else if (drawState.type === 'line' || drawState.type === 'circle') {
+      if (drawState.points.length === 1) drawState.points.push(ll);
+      else drawState.points[1] = ll;
+    } else if (drawState.type === 'x') {
+      drawState.points[0] = ll;
+    }
+    redrawAllDrawings();
+  }
+  function onDrawEnd(e) {
+    if (!drawState) return;
+    e && e.preventDefault();
+    const finished = drawState;
+    drawState = null;
     state.currentDrawing = null;
+    state.drawings.push(finished);
+    state.syncBackend && state.syncBackend.publishDrawing(finished);
     redrawAllDrawings();
-  });
+  }
 
-  // --- UI ---
+  canvas.addEventListener('mousedown', onDrawStart);
+  canvas.addEventListener('mousemove', onDrawMove);
+  canvas.addEventListener('mouseup', onDrawEnd);
+  canvas.addEventListener('mouseleave', onDrawEnd);
+  canvas.addEventListener('touchstart', onDrawStart, { passive: false });
+  canvas.addEventListener('touchmove', onDrawMove, { passive: false });
+  canvas.addEventListener('touchend', onDrawEnd, { passive: false });
+  canvas.addEventListener('touchcancel', onDrawEnd, { passive: false });
+
+  // ============== TOOL SELECTION ==============
   document.querySelectorAll('.tool').forEach(btn => {
     btn.addEventListener('click', () => {
-      const t = btn.dataset.tool;
-      if (t === 'clear') {
-        state.drawings = []; state.syncBackend.clearDrawings(); redrawAllDrawings();
-      } else if (t === 'undo') {
-        const last = state.drawings.filter(d => d.userId === state.userId).pop();
-        if (last) {
-          state.drawings = state.drawings.filter(d => d.id !== last.id);
-          state.syncBackend.deleteDrawing(last.id);
+      const tool = btn.dataset.tool;
+      if (tool === 'clear') {
+        if (confirm('לנקות את כל השרטוטים מהמפה לכל המשתמשים בקבוצה? הפעולה אינה ניתנת לביטול.')) {
+          state.drawings = [];
+          state.syncBackend && state.syncBackend.clearDrawings();
           redrawAllDrawings();
+          toast('כל השרטוטים נמחקו לכולם');
         }
-      } else {
-        state.tool = t;
-        document.querySelectorAll('.tool').forEach(b => b.classList.toggle('active', b === btn));
-        canvas.classList.toggle('active', t !== 'pan');
+        return;
       }
+      if (tool === 'undo') {
+        // find user's last drawing and remove it
+        let removedId = null;
+        for (let i = state.drawings.length - 1; i >= 0; i--) {
+          if (state.drawings[i].userId === state.userId) {
+            removedId = state.drawings[i].id;
+            state.drawings.splice(i, 1);
+            break;
+          }
+        }
+        if (removedId) {
+          state.syncBackend && state.syncBackend.deleteDrawing(removedId);
+          redrawAllDrawings();
+          toast('בוטל הציור האחרון שלך');
+        } else {
+          toast('אין ציור שלך לבטל');
+        }
+        return;
+      }
+      state.tool = tool;
+      document.querySelectorAll('.tool').forEach(b => b.classList.toggle('active', b === btn));
+      const isDrawing = tool !== 'pan';
+      canvas.classList.toggle('active', isDrawing);
+      document.getElementById('colorRow').classList.toggle('visible', isDrawing);
     });
   });
 
-  document.getElementById('joinBtn').addEventListener('click', () => {
-    state.userName = document.getElementById('nameInput').value || 'אנונימי';
-    state.groupCode = document.getElementById('joinCodeInput').value || 'ROOM-1';
-    startApp();
+  document.querySelectorAll('.color-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      state.color = sw.dataset.color;
+    });
   });
 
+  // ============== TOP BAR BUTTONS ==============
+  document.getElementById('shareBtn').addEventListener('click', shareGroupCode);
+  document.getElementById('centerBtn').addEventListener('click', centerOnMe);
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    document.getElementById('menuSheet').classList.add('active');
+  });
+
+  function centerOnMe() {
+    if (state.lastPos) {
+      state.map.flyTo([state.lastPos.lat, state.lastPos.lng], 17, { duration: 0.6 });
+    } else {
+      toast('עדיין ממתין למיקום...');
+    }
+  }
+
+  function shareGroupCode() {
+    const code = state.groupCode;
+    const url = location.origin + location.pathname + '?group=' + encodeURIComponent(code);
+    const text = `הצטרף לקבוצה שלי ב-HighCastle! קוד: ${code}\n${url}`;
+    if (navigator.share) {
+      navigator.share({ title: 'HighCastle', text, url }).catch(() => {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => toast('הקוד הועתק'));
+    } else {
+      prompt('העתק את הקוד:', text);
+    }
+  }
+
+  // ============== MENU SHEET ==============
+  document.querySelector('#menuSheet .sheet-backdrop').addEventListener('click', () => {
+    document.getElementById('menuSheet').classList.remove('active');
+  });
+  document.getElementById('shareCodeItem').addEventListener('click', () => {
+    document.getElementById('menuSheet').classList.remove('active');
+    shareGroupCode();
+  });
+  document.getElementById('copyCodeItem').addEventListener('click', () => {
+    document.getElementById('menuSheet').classList.remove('active');
+    if (navigator.clipboard) navigator.clipboard.writeText(state.groupCode).then(() => toast('הקוד הועתק'));
+    else prompt('העתק את הקוד:', state.groupCode);
+  });
+  document.getElementById('recenterItem').addEventListener('click', () => {
+    document.getElementById('menuSheet').classList.remove('active');
+    const points = Object.values(state.members).filter(m => m.lat).map(m => [m.lat, m.lng]);
+    if (points.length === 0) return toast('אין חברי צוות עם מיקום');
+    if (points.length === 1) state.map.flyTo(points[0], 16);
+    else state.map.flyToBounds(L.latLngBounds(points).pad(0.3), { duration: 0.6 });
+  });
+  document.getElementById('toggleMapItem').addEventListener('click', () => {
+    document.getElementById('menuSheet').classList.remove('active');
+    const order = ['dark','street','satellite'];
+    const idx = order.indexOf(state.mapStyle);
+    const next = order[(idx+1) % order.length];
+    setMapStyle(next);
+    toast('מפה: ' + ({dark:'כהה',street:'רחובות',satellite:'לוויין'}[next]));
+  });
+  document.getElementById('leaveItem').addEventListener('click', () => {
+    if (!confirm('לצאת מהקבוצה?')) return;
+    leaveGroup();
+  });
+
+  function leaveGroup() {
+    state.syncBackend && state.syncBackend.leave();
+    stopLocationTracking();
+    clearSession();
+    location.reload();
+  }
+
+  // ============== SETUP FLOW ==============
   document.getElementById('createBtn').addEventListener('click', () => {
-    state.userName = document.getElementById('nameInput').value || 'אנונימי';
-    state.groupCode = Math.random().toString(36).slice(2, 7).toUpperCase();
-    startApp();
+    const name = document.getElementById('nameInput').value.trim();
+    if (!name) return toast('הזן את שמך תחילה');
+    state.userName = name;
+    state.groupCode = generateGroupCode();
+    enterApp();
+  });
+  document.getElementById('joinBtn').addEventListener('click', () => {
+    const name = document.getElementById('nameInput').value.trim();
+    const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+    if (!name) return toast('הזן את שמך תחילה');
+    if (!code) return toast('הזן קוד קבוצה');
+    state.userName = name;
+    state.groupCode = code;
+    enterApp();
   });
 
-  function startApp() {
-    document.getElementById('setupScreen').classList.remove('active');
-    document.getElementById('app').classList.add('active');
+  function enterApp() {
+    saveSession();
     document.getElementById('groupCodeDisplay').textContent = state.groupCode;
+    document.getElementById('userNameDisplay').textContent = state.userName;
+    document.getElementById('userGroupDisplay').textContent = state.groupCode;
+    showScreen('app');
+    setTimeout(() => {
+      state.map.invalidateSize();
+      resizeCanvas();
+    }, 100);
+    initSync();
+    startLocationTracking();
+    toast(`התחברת לקבוצה ${state.groupCode}`, 3000);
+  }
+
+  // ============== BOOT ==============
+  function boot() {
     initMap();
     resizeCanvas();
-    state.syncBackend = new HybridSync(state.groupCode);
-    
-    state.syncBackend.on('drawing', d => { state.drawings.push(d); redrawAllDrawings(); });
-    state.syncBackend.on('clear', () => { state.drawings = []; redrawAllDrawings(); });
-    state.syncBackend.on('delete', id => { state.drawings = state.drawings.filter(x => x.id !== id); redrawAllDrawings(); });
-    
-    navigator.geolocation.watchPosition(p => {
-      const m = { userId: state.userId, name: state.userName, lat: p.coords.latitude, lng: p.coords.longitude, color: colorForUser(state.userId) };
-      state.syncBackend.publishMember(m);
-      updateMarker(m);
-    }, null, { enableHighAccuracy: true });
+
+    // Check URL for group param
+    const params = new URLSearchParams(location.search);
+    const urlGroup = params.get('group');
+
+    const session = loadSession();
+    if (session && session.userName && session.groupCode) {
+      state.userName = session.userName;
+      state.userId = session.userId || userId;
+      state.groupCode = session.groupCode;
+      // resume
+      setTimeout(() => {
+        showScreen('app');
+        document.getElementById('groupCodeDisplay').textContent = state.groupCode;
+        document.getElementById('userNameDisplay').textContent = state.userName;
+        document.getElementById('userGroupDisplay').textContent = state.groupCode;
+        state.map.invalidateSize();
+        resizeCanvas();
+        initSync();
+        startLocationTracking();
+      }, 600);
+    } else {
+      if (urlGroup) document.getElementById('joinCodeInput').value = urlGroup.toUpperCase();
+      setTimeout(() => showScreen('setup'), 800);
+    }
   }
 
-  function updateMarker(m) {
-    const icon = L.divIcon({
-      html: `<div class="user-marker" style="background:${m.color}"></div><div class="marker-label">${m.name}</div>`,
-      className: ''
-    });
-    if (state.markers[m.userId]) state.markers[m.userId].setLatLng([m.lat, m.lng]);
-    else state.markers[m.userId] = L.marker([m.lat, m.lng], {icon}).addTo(state.map);
+  // Wait for Leaflet
+  if (typeof L === 'undefined') {
+    window.addEventListener('load', boot);
+  } else {
+    boot();
   }
 
-  window.onload = () => document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('setupScreen').classList.add('active');
-
+  // PWA service worker registration
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
   </script>
 </body>
 </html>
